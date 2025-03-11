@@ -7,6 +7,7 @@ import { Textarea } from './ui/textarea';
 import { Label } from './ui/label';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FaWhatsapp } from 'react-icons/fa';
+import { getTranslation, getTranslations, supportedLanguages, baseTranslations } from '../utils/translate';
 
 // Define message types
 const MessageType = {
@@ -62,108 +63,111 @@ const ChatBot = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [products, setProducts] = useState([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-
-  const translations = {
-    en: {
-      welcome: "Hello! How can I assist you today? You can type 'Product' to see our product list, 'Contact' to get our details, 'Enquiry' to submit a request, 'Catalog' to download our catalog, or 'Support' to speak with an agent.",
-      product: "Our Products",
-      contact: "Contact Information",
-      enquiry: "Submit Enquiry",
-      support: "Support Options",
-      catalog: "Download Catalog",
-      thankYou: "Thank you for your enquiry! Our team will reach out to you shortly.",
-      supportHours: "Support Hours: Monday - Friday, 9 AM - 6 PM EST",
-      loadingProducts: "Loading products...",
-      catalogDesc: "Our comprehensive product catalog with detailed specifications and pricing.",
-      supportDesc: "Our support team is available 24/7 to assist you with any questions or issues.",
-      notUnderstood: "I'm not sure I understand. You can type 'Product', 'Contact', 'Enquiry', 'Catalog', or 'Support' to get started.",
-      name: "Name",
-      email: "Email",
-      phone: "Phone",
-      message: "Message",
-      cancel: "Cancel",
-      submit: "Submit",
-      callNow: "Call Now",
-      liveChat: "Live Chat",
-      learnMore: "Learn More",
-      typeMessage: "Type your message...",
-      downloadPDF: "Download PDF",
-      enquirySubmitted: "Thank you, {name}! Your enquiry has been submitted. Our team will contact you shortly at {email}."
-    },
-    es: {
-      welcome: "¡Hola! ¿Cómo puedo ayudarte hoy? Escribe 'Producto' para ver nuestra lista de productos, 'Contacto' para obtener nuestros detalles, 'Consulta' para enviar una solicitud, 'Catálogo' para descargar nuestro catálogo o 'Soporte' para hablar con un agente.",
-      product: "Nuestros Productos",
-      contact: "Información de Contacto",
-      enquiry: "Enviar Consulta",
-      support: "Opciones de Soporte",
-      catalog: "Descargar Catálogo",
-      thankYou: "¡Gracias por tu consulta! Nuestro equipo se pondrá en contacto contigo pronto.",
-      supportHours: "Horario de Soporte: Lunes - Viernes, 9 AM - 6 PM EST",
-      loadingProducts: "Cargando productos...",
-      catalogDesc: "Nuestro catálogo completo de productos con especificaciones detalladas y precios.",
-      supportDesc: "Nuestro equipo de soporte está disponible 24/7 para ayudarte con cualquier pregunta o problema.",
-      notUnderstood: "No estoy seguro de entender. Puedes escribir 'Producto', 'Contacto', 'Consulta', 'Catálogo' o 'Soporte' para comenzar.",
-      name: "Nombre",
-      email: "Correo electrónico",
-      phone: "Teléfono",
-      message: "Mensaje",
-      cancel: "Cancelar",
-      submit: "Enviar",
-      callNow: "Llamar Ahora",
-      liveChat: "Chat en Vivo",
-      learnMore: "Más Información",
-      typeMessage: "Escribe tu mensaje...",
-      downloadPDF: "Descargar PDF",
-      enquirySubmitted: "¡Gracias, {name}! Tu consulta ha sido enviada. Nuestro equipo te contactará pronto en {email}."
-    },
-    fr: {
-      welcome: "Bonjour! Comment puis-je vous aider aujourd'hui? Tapez 'Produit' pour voir notre liste de produits, 'Contact' pour obtenir nos coordonnées, 'Demande' pour soumettre une requête, 'Catalogue' pour télécharger notre catalogue, ou 'Support' pour parler avec notre équipe.",
-      product: "Nos Produits",
-      contact: "Informations de Contact",
-      enquiry: "Soumettre une Demande",
-      support: "Options de Support",
-      catalog: "Télécharger le Catalogue",
-      thankYou: "Merci pour votre demande! Notre équipe vous contactera bientôt.",
-      supportHours: "Heures de Support: Lundi - Vendredi, 9h - 18h EST",
-      loadingProducts: "Chargement des produits...",
-      catalogDesc: "Notre catalogue complet de produits avec spécifications détaillées et prix.",
-      supportDesc: "Notre équipe de support est disponible 24/7 pour vous aider avec toutes questions ou problèmes.",
-      notUnderstood: "Je ne suis pas sûr de comprendre. Vous pouvez taper 'Produit', 'Contact', 'Demande', 'Catalogue', ou 'Support' pour commencer.",
-      name: "Nom",
-      email: "Email",
-      phone: "Téléphone",
-      message: "Message",
-      cancel: "Annuler",
-      submit: "Soumettre",
-      callNow: "Appeler Maintenant",
-      liveChat: "Chat en Direct",
-      learnMore: "En Savoir Plus",
-      typeMessage: "Tapez votre message...",
-      downloadPDF: "Télécharger PDF",
-      enquirySubmitted: "Merci, {name}! Votre demande a été soumise. Notre équipe vous contactera bientôt à {email}."
-    }
-  };
+  const [translations, setTranslations] = useState({});
+  const [availableLanguages, setAvailableLanguages] = useState(supportedLanguages);
+  const [translatedTexts, setTranslatedTexts] = useState({});
+  const [forceUpdate, setForceUpdate] = useState(0);
 
   // Initialize language from localStorage or default to English
   useEffect(() => {
     const savedLanguage = localStorage.getItem('language') || 'en';
     setLanguage(savedLanguage);
+    
+    // Load translations for the current language
+    const loadTranslations = async () => {
+      try {
+        console.log("Loading initial translations for:", savedLanguage);
+        const trans = await getTranslations(savedLanguage);
+        setTranslations(prev => ({ ...prev, [savedLanguage]: trans }));
+      } catch (error) {
+        console.error("Error loading initial translations:", error);
+      }
+    };
+    
+    loadTranslations();
   }, []);
 
+  // Force UI update when language changes
+  useEffect(() => {
+    console.log("Language changed to:", language);
+    // Force a re-render when language changes
+    setForceUpdate(prev => prev + 1);
+    
+    // Update all UI elements with new language
+    if (translations[language]) {
+      // Refresh all translated texts when language changes
+      const keys = Object.keys(baseTranslations || {});
+      keys.forEach(key => {
+        updateTranslation(key);
+      });
+    }
+  }, [language]);
+
   // Change language function
-  const changeLanguage = (lang) => {
-    setLanguage(lang);
-    localStorage.setItem('language', lang);
-    // Refresh welcome message
-    if (messages.length === 1 && messages[0].type === MessageType.BOT) {
-      setMessages([
-        {
-          id: Date.now().toString(),
-          type: MessageType.BOT,
-          content: translations[lang].welcome,
-          timestamp: new Date(),
-        },
-      ]);
+  const changeLanguage = async (lang) => {
+    if (lang === language) return; // Don't do anything if language hasn't changed
+    
+    console.log(`Changing language from ${language} to ${lang}`);
+    
+    try {
+      // Show loading state
+      setIsTyping(true);
+      
+      // Set language immediately to update UI
+      setLanguage(lang);
+      localStorage.setItem('language', lang);
+      
+      // Force update UI elements
+      setForceUpdate(prev => prev + 1);
+      
+      // Get translations for the language (should be available immediately since we're using hardcoded translations)
+      const trans = await getTranslations(lang);
+      setTranslations(prev => ({ ...prev, [lang]: trans }));
+      
+      // Update all translated text elements
+      const keys = Object.keys(baseTranslations || {});
+      keys.forEach(key => {
+        updateTranslation(key);
+      });
+      
+      // Refresh welcome message if it's the only message
+      if (messages.length === 1 && messages[0].type === MessageType.BOT) {
+        const welcomeMessage = trans?.welcome || baseTranslations.welcome;
+        setMessages([
+          {
+            id: Date.now().toString(),
+            type: MessageType.BOT,
+            content: welcomeMessage,
+            timestamp: new Date(),
+          },
+        ]);
+      } else {
+        // Add a language change notification message
+        const langName = supportedLanguages.find(l => l.code === lang)?.name || lang;
+        addMessage(
+          MessageType.BOT,
+          `Language changed to ${langName}.`
+        );
+      }
+      
+      // Clear the translated texts cache when changing language
+      setTranslatedTexts({});
+      
+      // Hide loading state
+      setIsTyping(false);
+    } catch (error) {
+      console.error(`Error changing language to ${lang}:`, error);
+      setIsTyping(false);
+      
+      // Revert to previous language on error
+      setLanguage(language);
+      localStorage.setItem('language', language);
+      
+      // Add error message
+      addMessage(
+        MessageType.BOT,
+        `Sorry, there was an error changing the language. Please try again.`
+      );
     }
   };
 
@@ -171,16 +175,22 @@ const ChatBot = () => {
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       setIsTyping(true);
-      setTimeout(() => {
+      
+      const showWelcomeMessage = async () => {
+        const welcomeMessage = await getTranslation('welcome', language);
         setMessages([
           {
             id: Date.now().toString(),
             type: MessageType.BOT,
-            content: translations[language].welcome,
+            content: welcomeMessage,
             timestamp: new Date(),
           },
         ]);
         setIsTyping(false);
+      };
+      
+      setTimeout(() => {
+        showWelcomeMessage();
       }, 1000);
     }
   }, [isOpen, messages.length, language]);
@@ -208,7 +218,7 @@ const ChatBot = () => {
     }
   };
 
-  const handleEnquirySubmit = () => {
+  const handleEnquirySubmit = async () => {
     const errors = validateForm(formData);
 
     if (Object.keys(errors).length === 0) {
@@ -217,10 +227,15 @@ const ChatBot = () => {
 
       // Add bot response
       setIsTyping(true);
-      setTimeout(() => {
+      setTimeout(async () => {
+        const thankYouMessage = await getTranslation('enquirySubmitted', language, { 
+          name: formData.name, 
+          email: formData.email 
+        });
+        
         addMessage(
           MessageType.BOT,
-          translations[language].enquirySubmitted.replace("{name}", formData.name).replace("{email}", formData.email),
+          thankYouMessage
         );
         setIsTyping(false);
       }, 1000);
@@ -284,36 +299,43 @@ const ChatBot = () => {
     setIsTyping(true);
 
     // Handle different commands
-    setTimeout(() => {
+    setTimeout(async () => {
       setIsTyping(false);
       setIsProcessing(false);
       
       if (userInput.includes("product")) {
-        addMessage(MessageType.PRODUCT, translations[language].productIntro);
+        const productIntro = await getTranslation('productIntro', language);
+        addMessage(MessageType.PRODUCT, productIntro);
         fetchProducts();
       } else if (userInput.includes("contact")) {
-        addMessage(MessageType.CONTACT, translations[language].contactInfo);
+        const contactInfo = await getTranslation('contactInfo', language);
+        addMessage(MessageType.CONTACT, contactInfo);
       } else if (userInput.includes("enquiry")) {
         setShowEnquiryForm(true);
       } else if (userInput.includes("catalog")) {
-        addMessage(MessageType.CATALOG, translations[language].downloadCatalog);
+        const catalogInfo = await getTranslation('downloadCatalog', language);
+        addMessage(MessageType.CATALOG, catalogInfo);
       } else if (userInput.includes("support")) {
-        addMessage(MessageType.SUPPORT, translations[language].supportTeam);
+        const supportInfo = await getTranslation('supportTeam', language);
+        addMessage(MessageType.SUPPORT, supportInfo);
       } else if (userInput.includes("language")) {
+        const langOptions = availableLanguages.map(lang => `${lang.name} (${lang.code})`).join(', ');
         addMessage(
           MessageType.BOT,
-          "You can change the language to: English (en), Spanish (es), or French (fr). Type 'en', 'es', or 'fr' to change."
+          `You can change the language to: ${langOptions}. Type the language code to change.`
         );
-      } else if (userInput === "en" || userInput === "es" || userInput === "fr") {
-        changeLanguage(userInput);
+      } else if (availableLanguages.some(lang => lang.code === userInput)) {
+        await changeLanguage(userInput);
+        const langName = availableLanguages.find(lang => lang.code === userInput)?.name || userInput;
         addMessage(
           MessageType.BOT,
-          `Language changed to ${userInput === "en" ? "English" : userInput === "es" ? "Spanish" : "French"}.`
+          `Language changed to ${langName}.`
         );
       } else {
+        const notUnderstood = await getTranslation('notUnderstood', language);
         addMessage(
           MessageType.BOT,
-          translations[language].notUnderstood,
+          notUnderstood
         );
       }
     }, 1500);
@@ -323,6 +345,54 @@ const ChatBot = () => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
+    }
+  };
+
+  // Get translation helper function (synchronous version for JSX)
+  const getTranslatedText = (key, params = {}) => {
+    // If we already have this translation in our cache, return it
+    if (translatedTexts[key]) {
+      return translatedTexts[key];
+    }
+    
+    // Otherwise return a placeholder and trigger an async update
+    setTimeout(() => updateTranslation(key, params), 0);
+    
+    // Return from translations object if available, or the key itself as fallback
+    if (translations[language]?.[key]) {
+      let text = translations[language][key];
+      // Replace parameters in the text
+      if (params) {
+        Object.entries(params).forEach(([param, value]) => {
+          text = text.replace(`{${param}}`, value);
+        });
+      }
+      return text;
+    }
+    
+    return key; // Fallback to the key itself
+  };
+  
+  // Async function to update translations
+  const updateTranslation = async (key, params = {}) => {
+    try {
+      if (!key) return;
+      
+      // Get translation from cache or fetch new one
+      let translatedText = translatedTexts[key];
+      
+      if (!translatedText) {
+        translatedText = await getTranslation(key, language);
+        setTranslatedTexts(prev => ({
+          ...prev,
+          [key]: translatedText
+        }));
+      }
+      
+      return translatedText;
+    } catch (error) {
+      console.error(`Error updating translation for ${key}:`, error);
+      return baseTranslations[key] || key; // Fallback to English or key itself
     }
   };
 
@@ -369,16 +439,23 @@ const ChatBot = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   {/* Language selector */}
-                  <div className="mr-2">
-                    <select 
-                      value={language}
-                      onChange={(e) => changeLanguage(e.target.value)}
-                      className="bg-[#2d364d] text-white border border-primary/30 rounded-md py-1.5 px-2 text-sm hover:border-primary/50 focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all duration-200 cursor-pointer shadow-[0_2px_4px_rgba(0,255,0,0.1)]"
-                    >
-                      <option value="en" className="bg-[#1a1f2c]">🇺🇸 English</option>
-                      <option value="es" className="bg-[#1a1f2c]">🇪🇸 Spanish</option>
-                      <option value="fr" className="bg-[#1a1f2c]">🇫🇷 French</option>
-                    </select>
+                  <div className="mr-2 relative group">
+                    <div className="flex items-center space-x-1 cursor-pointer">
+                      <Globe className="h-5 w-5 text-primary/70" />
+                      <select 
+                        value={language}
+                        onChange={(e) => changeLanguage(e.target.value)}
+                        className="bg-[#2d364d] text-white border border-primary/30 rounded-md py-1.5 px-2 text-sm hover:border-primary/50 focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all duration-200 cursor-pointer shadow-[0_2px_4px_rgba(0,255,0,0.1)]"
+                        disabled={isTyping}
+                      >
+                        {supportedLanguages.map((lang) => (
+                          <option key={lang.code} value={lang.code} className="bg-[#1a1f2c]">
+                            {lang.name}
+                          </option>
+                        ))}
+                      </select>
+                      {isTyping && <Loader2 className="h-4 w-4 animate-spin text-primary/70 absolute right-2 top-2" />}
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
@@ -414,7 +491,7 @@ const ChatBot = () => {
                         {isLoadingProducts ? (
                           <div className="flex justify-center items-center py-4">
                             <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                            <span className="ml-2 text-foreground">{translations[language].loadingProducts}</span>
+                            <span className="ml-2 text-foreground">{getTranslatedText('loadingProducts')}</span>
                           </div>
                         ) : (
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -446,13 +523,13 @@ const ChatBot = () => {
                                       );
                                     }}
                                   >
-                                    {translations[language].learnMore}
+                                    {getTranslatedText('learnMore')}
                                   </Button>
                                 </div>
                               ))
                             ) : (
                               <div className="col-span-2 text-center p-4">
-                                <p className="text-foreground">No products found. Please try again later.</p>
+                                <p className="text-foreground">{getTranslatedText('noProductsFound')}</p>
                               </div>
                             )}
                           </div>
@@ -478,7 +555,7 @@ const ChatBot = () => {
                               window.open('tel:+15551234567', '_blank');
                             }}
                           >
-                            {translations[language].callNow}
+                            {getTranslatedText('callNow')}
                           </Button>
                         </div>
                       </div>
@@ -486,7 +563,7 @@ const ChatBot = () => {
                       <div className="bg-gradient-to-br from-[#1a1f2c] to-[#2d364d] backdrop-blur-sm rounded-lg p-4 max-w-[85%] border border-primary/20 shadow-lg hover:shadow-primary/20 transition-all duration-300 shadow-[0_4px_12px_rgba(0,255,0,0.1)]">
                         <h3 className="font-semibold text-primary mb-2">{message.content}</h3>
                         <p className="text-foreground mb-3">
-                          {translations[language].catalogDesc}
+                          {getTranslatedText('catalogDesc')}
                         </p>
                         <Button
                           variant="outline"
@@ -502,14 +579,14 @@ const ChatBot = () => {
                           }}
                         >
                           <Download className="h-4 w-4 mr-2" />
-                          {translations[language].downloadPDF}
+                          {getTranslatedText('downloadPDF')}
                         </Button>
                       </div>
                     ) : message.type === MessageType.SUPPORT ? (
                       <div className="bg-gradient-to-br from-[#1a1f2c] to-[#2d364d] backdrop-blur-sm rounded-lg p-4 max-w-[85%] border border-primary/20 shadow-lg hover:shadow-primary/20 transition-all duration-300 shadow-[0_4px_12px_rgba(0,255,0,0.1)]">
                         <h3 className="font-semibold text-primary mb-2">{message.content}</h3>
                         <p className="text-foreground mb-3">
-                          {translations[language].supportDesc}
+                          {getTranslatedText('supportDesc')}
                         </p>
                         <div className="flex space-x-2">
                           <Button
@@ -520,7 +597,7 @@ const ChatBot = () => {
                             }}
                           >
                             <Phone className="h-4 w-4 mr-2" />
-                            {translations[language].callNow}
+                            {getTranslatedText('callNow')}
                           </Button>
                           <Button
                             variant="outline"
@@ -533,7 +610,7 @@ const ChatBot = () => {
                             }}
                           >
                             <MessageCircle className="h-4 w-4 mr-2" />
-                            {translations[language].liveChat}
+                            {getTranslatedText('liveChat')}
                           </Button>
                         </div>
                       </div>
@@ -570,11 +647,11 @@ const ChatBot = () => {
                 {/* Enquiry form */}
                 {showEnquiryForm && (
                   <div className="bg-gradient-to-br from-[#1a1f2c] to-[#2d364d] backdrop-blur-sm rounded-lg p-4 max-w-[85%] border border-primary/20 shadow-lg hover:shadow-primary/20 transition-all duration-300 shadow-[0_4px_12px_rgba(0,255,0,0.1)]">
-                    <h3 className="font-semibold text-primary mb-3">{translations[language].submitEnquiry}</h3>
+                    <h3 className="font-semibold text-primary mb-3">{getTranslatedText('submitEnquiry')}</h3>
                     <div className="space-y-3">
                       <div>
                         <Label htmlFor="name" className="text-foreground">
-                          {translations[language].name} <span className="text-red-500">*</span>
+                          {getTranslatedText('name')} <span className="text-red-500">*</span>
                         </Label>
                         <Input
                           id="name"
@@ -587,7 +664,7 @@ const ChatBot = () => {
                       </div>
                       <div>
                         <Label htmlFor="email" className="text-foreground">
-                          {translations[language].email} <span className="text-red-500">*</span>
+                          {getTranslatedText('email')} <span className="text-red-500">*</span>
                         </Label>
                         <Input
                           id="email"
@@ -601,7 +678,7 @@ const ChatBot = () => {
                       </div>
                       <div>
                         <Label htmlFor="phone" className="text-foreground">
-                          {translations[language].phone}
+                          {getTranslatedText('phone')}
                         </Label>
                         <Input
                           id="phone"
@@ -614,7 +691,7 @@ const ChatBot = () => {
                       </div>
                       <div>
                         <Label htmlFor="message" className="text-foreground">
-                          {translations[language].message} <span className="text-red-500">*</span>
+                          {getTranslatedText('message')} <span className="text-red-500">*</span>
                         </Label>
                         <Textarea
                           id="message"
@@ -632,10 +709,10 @@ const ChatBot = () => {
                           onClick={() => setShowEnquiryForm(false)}
                           className="border-primary/30 text-foreground hover:bg-secondary"
                         >
-                          {translations[language].cancel}
+                          {getTranslatedText('cancel')}
                         </Button>
                         <Button onClick={handleEnquirySubmit} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                          {translations[language].submit}
+                          {getTranslatedText('submit')}
                         </Button>
                       </div>
                     </div>
@@ -653,7 +730,7 @@ const ChatBot = () => {
                     value={inputValue}
                     onChange={handleInputChange}
                     onKeyDown={handleKeyDown}
-                    placeholder={translations[language].typeMessage}
+                    placeholder={getTranslatedText('typeMessage')}
                     className="bg-[#2d364d] border-primary/30 text-white placeholder-gray-400 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 shadow-[0_2px_4px_rgba(0,255,0,0.1)]"
                     disabled={isProcessing}
                   />
@@ -678,4 +755,4 @@ const ChatBot = () => {
   );
 };
 
-export default ChatBot; 
+export default ChatBot;
